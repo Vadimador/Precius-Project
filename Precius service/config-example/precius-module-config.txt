@@ -15,3 +15,9 @@
 "C:/User/Precius/quarantineModule.py";
 "python.exe quarantineModule.py -f <filepath>"
 ]
+
+[
+"lokiScanner";
+"C:/User/toto/loki.exe";
+"loki.exe -p <filepath> --noprocscan --nolisten"
+]
