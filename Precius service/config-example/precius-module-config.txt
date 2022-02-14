@@ -1,0 +1,17 @@
+[
+"fileScanner";
+"C:/User/Precius/fileScanner.exe";
+"fileScanner.exe -d <filepath> -v --other-argument"
+]
+
+[
+"processScanner";
+"C:/User/Precius/processScanner.exe";
+"processScanner.exe -p <pid>"
+]
+
+[
+"quarantineModule";
+"C:/User/Precius/quarantineModule.py";
+"python.exe quarantineModule.py -f <filepath>"
+]
