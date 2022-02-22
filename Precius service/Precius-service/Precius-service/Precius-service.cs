@@ -14,6 +14,15 @@ namespace Precius_service
     public partial class Precius : ServiceBase
     {
         private int eventId = 1;
+        // tab module
+        // tab secteurs
+
+        
+        private bool OutPutCheckFormat(string args)
+        {
+
+            return false;
+        }
 
         public Precius()
         {
@@ -28,7 +37,7 @@ namespace Precius_service
             eventLog1.Log = "MyNewLog";
         }
 
-        protected override void OnStart(string[] args)
+        protected override void OnStart(string[] args) // il faut que la fonction se termine pour ne pas bloquer tout l'os
         {
             eventLog1.WriteEntry("In OnStart.");
 
