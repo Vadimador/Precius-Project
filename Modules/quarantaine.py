@@ -7,12 +7,14 @@ from subprocess import getoutput
 from cryptography.fernet import Fernet
 import datetime
 
+# C:\ProgramData\Microsoft\precius\ 
 # requierement : pip install python-dev-tools
-
 #  python -m pip install cryptography
 
 virus = 1
 if virus == 1: 
+########################################## Repertoire
+ def repertoire():    
 # vérifier l’existence du répertoire et le créer s’il n’existe pas
     try:
        os.mkdir('C:\ProgramData\Microsoft\precius')
@@ -27,9 +29,12 @@ if virus == 1:
             print('***** Le répertoire Key existe déjà ****')
     print(' [+] repertoire Key : OK !\n\n\n')
 
+######################################################## Move
     # Déplacer le fichier virus
-
-    virus_name = input("entrez le nom de votre fichier : ")
+def move(): 
+    global virus_name, destination, position_virus, positionf, destinationf
+    virus_name = sys.argv[2]
+    #virus_name = input("entrez le nom de votre fichier : ")
     position_virus=os.getcwd() + "\\" 
     destination = 'C:\ProgramData\Microsoft\precius\Quarantine\\'
     destinationf = destination + virus_name
@@ -39,12 +44,11 @@ if virus == 1:
     else :
         shutil.move(positionf, destinationf)
 
-########################################## chiffrement 
+############################################## chiffrement 
 
 def chiffrement(): 
 ######################################
 # https://fr.acervolima.com/crypter-et-decrypter-des-fichiers-a-laide-de-python/
-
 
     #Générer la clé et la sauvegarder
     fileName = 'C:/ProgramData/Microsoft/precius/key/filekey.key'
@@ -70,6 +74,7 @@ def chiffrement():
     with open('C:\ProgramData\Microsoft\precius\Quarantine\\' + virus_name, 'wb') as encrypted_file: 
         encrypted_file.write(encrypted) 
         print("[+] fichier en quarantaine [+]")
+        print("Quarantaine \t  ==> C:\ProgramData\Microsoft\precius\Quarantine")
 
     # crée fichier log 
     log  = 'c:\ProgramData\Microsoft\precius\Quarantine\quarantaine.log'
@@ -88,12 +93,17 @@ def chiffrement():
 
 
 
-# # # # # # # # # # # # # # # # # dechiffrement 
+#################################################### dechiffrement 
 
 def dechiffrement():       
 
 ####  Décrypter le fichier crypté
-
+    virus_name = sys.argv[2]
+    position_virus=os.getcwd() + "\\" 
+    destination = 'C:\ProgramData\Microsoft\precius\Quarantine\\'
+    destinationf = destination + virus_name
+    positionf = position_virus + virus_name
+    
     with open('C:/ProgramData/Microsoft/precius/key/filekey.key', 'rb') as filekey: 
         key = filekey.read() 
         print("virus_name: ", virus_name)
@@ -104,9 +114,9 @@ def dechiffrement():
     with open('C:/ProgramData/Microsoft/precius/Quarantine/'+ virus_name, 'wb') as dec_file: 
         dec_file.write(decrypted)
     
-
     shutil.move(destinationf, positionf)
     print("[-][-] suppression de", virus_name, "de là quarantaine [-][-]")
+    print("Emplacement \t ==>", positionf)
     if os.path.isfile(destinationf):
         print("[WARNING] echec de là suppression de là quarantaine [WARNING] ")
     else:
@@ -116,10 +126,23 @@ def dechiffrement():
         fichier2.write("]\n=====> réaffectation de [ "+ virus_name + " ] au répertoire : [ "+ positionf +" ]  [*] \n ")
         fichier2.close()    
                
-######################################################
+###################################################### Manuel
+def manuel():
+    print('\n\tBienvenue dans le Module Quarantaine\n ')
+    print('***** Manuel de commandes *****')
+    print(' \n\n pour chiffrer :\t"chiffrement" ou "-chiffrement" suivie du nom du fichier à chiffrer')
+    print('pour dechiffrer : \t"dechiffrement" ou "-dechiffrement" suivie du nom du fichier à chiffrer\n')
+    print('exemple : \t python quarantaine.py chiffrement image.jpg')
+    print('\t \t python quarantaine.py -dechiffrement image.jpg \n')
 
-if sys.argv[1] == 'chiffrement':
+#################################################### Commande
+
+if sys.argv[1] == 'chiffrement' or sys.argv[1] == '-chiffrement' :
+    repertoire()
+    move() 
     chiffrement()
-
-if sys.argv[1] == 'dechiffrement':
+elif  sys.argv[1] == 'dechiffrement'or sys.argv[1] == '-dechiffrement':
     dechiffrement()
+
+elif sys.argv[1] == '-help' or sys.argv[1] == '-h'or sys.argv[1] == '--h' or sys.argv[1] == '--help':
+    manuel()
