@@ -19,5 +19,6 @@
 [
 "lokiScanner";
 "C:/User/toto/loki.exe";
-"loki.exe -p <filepath> --noprocscan --nolisten"
+"loki.exe -p <filepath> --noprocscan --nolisten --nolog"
+!"alerte 0"
 ]
