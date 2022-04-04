@@ -91,7 +91,7 @@ namespace Precius_service
                     tab[i] = tab[i].Trim().Replace("\n\n", "");
                     subTab = tab[i].Split('\n');
 
-                    Sector s = new Sector("unnamed", this.tabKeyWord);
+                    Sector s = new Sector("unnamed", this.tabKeyWord); // par défaut ils sont sans nom
 
                     for (int j = 0; j < subTab.Length; j++)
                     {
@@ -100,12 +100,12 @@ namespace Precius_service
                             if(subTab[j].Trim().First() == '*' || subTab[j].Trim().First() == '/')
                             {
                                 s.pathList.Add(subTab[j].Trim()); // on ajoute un path
-                                eventLog1.WriteEntry("sector [" + (i - 1) + "] : new path (" + j + ") : " + subTab[j], EventLogEntryType.Information, eventId++);
+                                //eventLog1.WriteEntry("sector [" + (i - 1) + "] : new path (" + j + ") : " + subTab[j], EventLogEntryType.Information, eventId++);
                             }
                             else if (this.tabKeyWord.Contains(subTab[j].Split('=')[0].Trim()))
                             {
                                 s.rules[subTab[j].Split('=')[0].Trim()] = subTab[j].Split('=')[1].Trim(); // on ajoute une règle
-                                eventLog1.WriteEntry("sector [" + (i - 1) + "] : new rule (" + j + ") : " + subTab[j], EventLogEntryType.Information, eventId++);
+                                //eventLog1.WriteEntry("sector [" + (i - 1) + "] : new rule (" + j + ") : " + subTab[j], EventLogEntryType.Information, eventId++);
                             }
                             
                         }
@@ -124,6 +124,41 @@ namespace Precius_service
             finally
             {
                 eventLog1.WriteEntry("in Finally block", EventLogEntryType.Information, eventId++);
+            }
+        }
+
+        private void ShowSectors()
+        {
+            try
+            {
+                string seeSectors = "Affichage des secteurs : \n\n";
+                for(int i = 0; i < sectors.Count(); i++)
+                {
+                    seeSectors += "--------------------------------------------------------------\n";
+                    seeSectors += "sector numéro : " + i + "\n";
+                    seeSectors += " ------ All path :\n";
+                    for(int j = 0; j < sectors[i].pathList.Count(); j++)
+                    {
+                        seeSectors += "     " + sectors[i].pathList[j] + "\n";
+                    }
+
+                    seeSectors += " ------ All rules :\n";
+
+                    for (int j = 0; j < tabKeyWord.Length; j++)
+                    {
+                        seeSectors += "     " + tabKeyWord[j] + "=" + sectors[i].rules[tabKeyWord[j]] + "\n";
+                    }
+                }
+                eventLog1.WriteEntry(seeSectors, EventLogEntryType.Information, eventId++);
+
+            }
+            catch (Exception e)
+            {
+                eventLog1.WriteEntry("Une Exception à été catch ! " + e.Message, EventLogEntryType.Error, eventId++);
+            }
+            finally
+            {
+
             }
         }
 
@@ -152,6 +187,7 @@ namespace Precius_service
             timer.Start();
 
             LoadSectors(); // on génére les secteurs de précius
+            ShowSectors();
         }
 
         public void OnTimer(object sender, ElapsedEventArgs args)
