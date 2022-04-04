@@ -45,6 +45,15 @@ namespace Precius_service
 
         private List<Sector> sectors = new List<Sector>(); // la liste de tous les sectors
         private int eventId = 1;
+        // tab module
+        // tab secteurs
+
+        
+        private bool OutPutCheckFormat(string args)
+        {
+
+            return false;
+        }
 
         private void lireFichierTest(string chemin)
         {
@@ -132,7 +141,7 @@ namespace Precius_service
             eventLog1.Log = "precius-log";
         }
 
-        protected override void OnStart(string[] args)
+        protected override void OnStart(string[] args) // il faut que la fonction se termine pour ne pas bloquer tout l'os
         {
             eventLog1.WriteEntry("In OnStart.");
 

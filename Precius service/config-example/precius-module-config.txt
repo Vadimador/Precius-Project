@@ -20,5 +20,5 @@
 "lokiScanner";
 "C:/User/toto/loki.exe";
 "loki.exe -p <filepath> --noprocscan --nolisten --nolog"
-!"alerte 0"
+!"alerte 0","INFECTED","warning",10"bad"
 ]
