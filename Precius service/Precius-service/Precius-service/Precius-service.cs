@@ -20,7 +20,40 @@ namespace Precius_service
         
         private bool OutPutCheckFormat(string args)
         {
+            string path = @"C:\Users\Fred\Desktop\loki_WINDEV2112EVAL_2022-02-14_11-31-14.log";
+            string pathfilewrite = @"C:\Users\Fred\Desktop\";
+            int buff = 0;
+     
+            if (File.Exists(path))
+            {
+                foreach (var line in File.ReadAllLines(path))
+                {
+                    if (line.Contains(alert))
+                    {
+                        buff = buff + 1;
+                        //if(line.Contains(fileinfec))                     
+                    }
+                    else if (line.Contains(warnings))
+                    {
+                        buff = buff + 1;
+                        //if(line.Contains(fileinfec))
+                    }
+                }
 
+                if (buff > 0)
+                {
+                    Console.WriteLine("INFECTED");
+                    // creation d'un fichier qui contiendra la reponse de sortie du programme
+                }
+                else
+                {
+                    Console.WriteLine("NEGATIF");
+                }
+            }
+            else
+            {
+                Console.WriteLine("file existe pas");
+            }
             return false;
         }
 
