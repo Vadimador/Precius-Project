@@ -1,24 +1,9 @@
-[
-"fileScanner";
-"C:/User/Precius/fileScanner.exe";
-"fileScanner.exe -d <filepath> -v --other-argument"
-]
+[new module]
+helloworld
+D:\Documents\pythonProject\precius-helloWorld\precius-hellworld.py
+python.exe <binary> -n "<filepath>"
 
-[
-"processScanner";
-"C:/User/Precius/processScanner.exe";
-"processScanner.exe -p <pid>"
-]
-
-[
-"quarantineModule";
-"C:/User/Precius/quarantineModule.py";
-"python.exe quarantineModule.py -f <filepath>"
-]
-
-[
-"lokiScanner";
-"C:/User/toto/loki.exe";
-"loki.exe -p <filepath> --noprocscan --nolisten --nolog"
-!"alerte 0","INFECTED","warning",10"bad"
-]
+[new module]
+static-helloworld
+D:\Documents\pythonProject\precius-helloWorld\precius-hellworld.py
+python.exe <binary> -n "static boi !"
