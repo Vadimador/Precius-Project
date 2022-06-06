@@ -248,6 +248,54 @@ namespace Precius_service
             }
             return seeModules;
         }
+        
+        private string ModuleInformation(string module)
+        {
+            string res = "";
+            if (!this.modules.ContainsKey(module))
+            {
+                res = "Module \"" + module + "\" can't be found.";
+                return res;
+            }
+
+            res += module + "\n";
+            res += this.modules[module].filepath + "\n";
+            res += this.modules[module].executable_chain + "\n";
+            res += this.modules[module].bad_output + "\n";
+
+            return res;
+        }
+
+        private void executeModule(string moduleName)
+        {
+
+        }
+        
+        private bool SearchLog(string stringToFind,ref string write, int last = 10)
+        {
+            EventLogEntryCollection elec = this.eventLog1.Entries;
+
+            if (elec.Count > 0)
+            {
+                for (int i = elec.Count - 1 ; i >= elec.Count - 1 - last; i--)
+                {
+                    if (i < 0)
+                    {
+                        i = 0;
+                        break;
+                    }
+                    eventLog1.WriteEntry("OMG message a " + i + " est : " + elec[i].Message);
+                    if (elec[i].Message.Contains(stringToFind))
+                    {
+                        write += elec[i].Message;
+                        return true;
+                    }
+                }
+            }
+
+
+            return false;
+        }
 
         public Precius()
         {
@@ -305,6 +353,23 @@ namespace Precius_service
                 case 129: // show modules
                     log = "CustomCommand.ShowModules\n";
                     eventLog1.WriteEntry(log + ShowModules(),EventLogEntryType.SuccessAudit, eventId++);
+                    break;
+                case 130: // module information command
+                    string write = "";
+                    if(SearchLog("Talker.ModuleInformation", ref write))
+                    {
+                        string[] temp = write.Split('\n');
+                        if(temp.Length == 2)
+                        {
+                            log = "CustomCommand.ModuleInformation\n";
+                            eventLog1.WriteEntry(log + ModuleInformation(temp[1]), EventLogEntryType.SuccessAudit, eventId++);
+                        }
+                        
+                    }
+                    break;
+                case 255: // fonction de test bip
+                    log = "CustomCommand.Bip\n";
+                    eventLog1.WriteEntry(log + ModuleInformation("helloworld"), EventLogEntryType.SuccessAudit,eventId++);
                     break;
                 default:
                     eventLog1.WriteEntry("Custom command inconnu reçu, numéro : " + command, EventLogEntryType.Error, eventId++);
