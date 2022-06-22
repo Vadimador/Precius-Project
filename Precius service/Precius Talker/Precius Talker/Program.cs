@@ -162,6 +162,7 @@ namespace Precius_Talker
                 // The following commands are needed to redirect the standard output.
                 // This means that it will be redirected to the Process.StandardOutput StreamReader.
                 procStartInfo.RedirectStandardOutput = true;
+                procStartInfo.RedirectStandardError = true;
                 procStartInfo.UseShellExecute = false;
                 // Do not create the black window.
                 procStartInfo.CreateNoWindow = true;
@@ -171,6 +172,13 @@ namespace Precius_Talker
                 proc.Start();
                 // Get the output into a string
                 string result = proc.StandardOutput.ReadToEnd();
+                string error = proc.StandardError.ReadToEnd();
+                if(error.Length > 0)
+                {
+                    result += "\n --- error --- \n";
+                    result += error;
+                }
+                
                 // Display the command output.
                 Console.WriteLine(result);
             }
