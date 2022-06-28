@@ -110,9 +110,11 @@ namespace Precius_service
                     {
                         if (subTab[j] != "")
                         {
-                            if(subTab[j].Trim().First() == '*' || subTab[j].Trim().First() == '/')
+                            subTab[j] = subTab[j].Trim();
+                            if(subTab[j].First() == '|')
                             {
-                                s.pathList.Add(subTab[j].Trim()); // on ajoute un path
+                                subTab[j] = subTab[j].Replace("|", "");
+                                s.pathList.Add(subTab[j]); // on ajoute un path
                                 //eventLog1.WriteEntry("sector [" + (i - 1) + "] : new path (" + j + ") : " + subTab[j], EventLogEntryType.Information, eventId++);
                             }
                             else if (this.tabKeyWord.Contains(subTab[j].Split('=')[0].Trim()))
@@ -165,8 +167,8 @@ namespace Precius_service
                     if (subTab.Length == 3)
                     {
                         Precius_Module m = new Precius_Module(subTab[1].Trim(), subTab[2].Trim());  // on génére un module vide
-                        eventLog1.WriteEntry(subTab[0].Trim() + " file path : " + m.filepath, EventLogEntryType.Information, eventId++);
-                        eventLog1.WriteEntry(subTab[0].Trim() + " chaine executable : " + m.executable_chain, EventLogEntryType.Information, eventId++);
+                        //eventLog1.WriteEntry(subTab[0].Trim() + " file path : " + m.filepath, EventLogEntryType.Information, eventId++);
+                        //eventLog1.WriteEntry(subTab[0].Trim() + " chaine executable : " + m.executable_chain, EventLogEntryType.Information, eventId++);
 
                         this.modules.Add(subTab[0].Trim(),m);
 
@@ -297,6 +299,78 @@ namespace Precius_service
             return false;
         }
 
+        // Retourne l'index du sector du path donnée, ou -1 si rien
+        private int PathToSector(string path)
+        {
+            int sector = -1;
+            path = ConvertPathToStandarsPath(path);
+            List<string> splitedSectorPath;
+
+            for(int i = 0; i < this.sectors.Count; i++)
+            {
+                foreach(string s in this.sectors[i].pathList){
+                    //splitedPath = path.Split('*');
+                    string temp = ConvertPathToStandarsPath(s);
+                    if (temp == "*")
+                    {
+                        return i;
+                    }
+
+                    splitedSectorPath = new List<string>(temp.Split('*'));
+
+                    for(int k = 0;k < splitedSectorPath.Count; k++) // on supprime les espace vide
+                    {
+                        if(splitedSectorPath[k] == "")
+                        {
+                            splitedSectorPath.RemoveAt(k);
+                            k--;
+                        }
+                    }
+
+                    int nbDetected = 0; // le nombre de string détécté
+                    int index = 0; // l'index de recherche
+                    int result = -2; // le resultat de la recherche
+                    for(int j = 0; j < splitedSectorPath.Count; j++)
+                    {
+                        if(path.Length <= index)
+                        {
+                            goto nextpath;
+                        }
+                        result = path.IndexOf(splitedSectorPath[j],index);
+                        if(result == -1 || result < index)
+                        {
+                            goto nextpath;
+                        }
+                        index = result + splitedSectorPath[j].Length;
+                        nbDetected++;
+                    }
+                    if(nbDetected == splitedSectorPath.Count)
+                    {
+                        return i; // YATAAAAAAAAA
+                    }
+                nextpath:;
+                  
+                }
+               
+            }
+
+            return sector;
+        }
+
+        // Convertit une chaine de caractère reprèsentant un chemin en Standars path de la sorte "C:/***/***"
+        private string ConvertPathToStandarsPath(string path)
+        {
+            path = path.Replace("\\","/");
+            path = path.Replace("c:", "C:");
+            path = path.Replace("|","");
+            while (path.Contains("**"))
+            {
+                path = path.Replace("**", "*");
+            }
+            path = path.Trim();
+            return path;
+        }
+
         public Precius()
         {
             InitializeComponent();
@@ -365,6 +439,19 @@ namespace Precius_service
                             eventLog1.WriteEntry(log + ModuleInformation(temp[1]), EventLogEntryType.SuccessAudit, eventId++);
                         }
                         
+                    }
+                    break;
+                case 131:// convert path to sector
+                    string write2 = "";
+                    if (SearchLog("Talker.ConvertPathToSector",ref write2))
+                    {
+                        string[] temp = write2.Split('\n');
+                        if (temp.Length == 2)
+                        {
+                            log = "CustomCommand.ConvertPathToSector";
+                            int response = this.PathToSector(temp[1]);
+                            eventLog1.WriteEntry(log + '\n' + response + '\n' + this.sectors[response], EventLogEntryType.SuccessAudit, eventId++);
+                        }
                     }
                     break;
                 case 255: // fonction de test bip

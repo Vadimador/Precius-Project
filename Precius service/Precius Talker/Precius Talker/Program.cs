@@ -13,6 +13,7 @@ namespace Precius_Talker
         private const string show_modules = "show_modules"; // montre la table des modules
         private const string show_sectors = "show_sectors"; // montre la table des secteurs
         private const string module = "module"; // execute de manière actif un module existant
+        private const string convert_path_to_sector = "convert_path_to_sector"; // execute de manière actif un module existant
         private const string bip = "bip";
 
         private const string sourceName = "Précius";
@@ -44,6 +45,13 @@ namespace Precius_Talker
                                 arglist.Add(args[i]);
 
                             ExecuteModule(ref arglist);
+                            break;
+                        case convert_path_to_sector:
+                            ConvertPathToSector(args[1]);
+                            break;
+                        case bip:
+                            //Console.WriteLine("args : " + args[1]);
+                            Console.WriteLine("Bip Result : " + Bip(args[1]));
                             break;
                         default:
                             throw new Exception("Unknowed command");
@@ -114,7 +122,7 @@ namespace Precius_Talker
                 if (success)
                     break;
                 Thread.Sleep(1000);
-                Console.WriteLine('.');
+                Console.WriteLine("...");
                 timer--;
             }
 
@@ -236,9 +244,95 @@ namespace Precius_Talker
             }
         }
 
-        static private void Bip(string[] arg)
+        static private void ConvertPathToSector(string path)
         {
-          
+            if (path.Length != 0)
+            {
+                string write = "";
+                WriteLog("Talker.ConvertPathToSector\n" + path);
+                if(WaitForLog(131, "CustomCommand.ConvertPathToSector",ref write))
+                {
+                    string[] temp = write.Split('\n');
+                    if(temp.Length >= 2)
+                    {
+                        Console.WriteLine("Sector atribué à ce path : " + temp[1]);
+                    }
+                    else
+                    {
+                        throw new Exception("Bad return from Precius-service");
+                    }
+
+                    
+                }
+            }
+            else
+            {
+                throw new Exception("Le chemin donné est vide");
+            }
+        }
+
+        static private bool Bip(string path)
+        {
+            Console.WriteLine("\n\n\n");
+            string sector = "*D:*/important/*/banane";
+            path = ConvertPathToStandarsPath(path);
+            Console.WriteLine("Sector path : " + sector);
+            Console.WriteLine("path : " + path);
+            string tempPath = path;
+            List<string> splitedSectorPath;
+
+            if(sector == "*")
+            {
+                return true;
+            }
+            splitedSectorPath = new List<string>(sector.Split('*'));
+
+            for (int k = 0; k < splitedSectorPath.Count; k++) // on supprime les espace vide
+            {
+                if (splitedSectorPath[k] == "")
+                {
+                    splitedSectorPath.RemoveAt(k);
+                    k--;
+                }
+            }
+
+            int nbDetected = 0; // le nombre de string détécté
+            int index = 0; // l'index de recherche
+            int result = -2; // le resultat de la recherche
+            for (int j = 0; j < splitedSectorPath.Count; j++)
+            {
+                if (tempPath.Length <= index)
+                {
+                    return false;
+                }
+                result = tempPath.IndexOf(splitedSectorPath[j], index);
+                if (result == -1 || result < index)
+                {
+                    return false;
+                }
+                index = result + splitedSectorPath[j].Length;
+                nbDetected++;
+            }
+            if (nbDetected == splitedSectorPath.Count)
+            {
+                return true; // YATAAAAAAAAA
+            }
+            Console.WriteLine("oh no !");
+            return false;
+
+        }
+
+        static private string ConvertPathToStandarsPath(string path)
+        {
+            path = path.Replace("\\", "/");
+            path = path.Replace("c:", "C:");
+            path = path.Replace("|", "");
+            while (path.Contains("**"))
+            {
+                path = path.Replace("**", "*");
+            }
+            path = path.Trim();
+            return path;
         }
 
         static private string help()
@@ -246,7 +340,8 @@ namespace Precius_Talker
             string h = "commandes :\n" +
                 "       show_sectors --> show the sectors table of the Précius service\n" +
                 "       show_modules --> show the modules table of the Précis service\n" +
-                "       module <module name> [argument] --> execute a module configured in Precius service\n";
+                "       module <module name> [argument] --> execute a module configured in Precius service\n" +
+                "       convert_path_to_sector <path> --> Renvoi le numéro de secteur attribué à ce chemin\n";
 
 
             return h;
