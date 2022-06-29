@@ -66,7 +66,7 @@ namespace Precius_service
         {
             //List<string> hashm = new List<string>();
             //List<string> txt = new List<string>();
-
+            //hashmap
             int result = 0;
 
             foreach (string i in text)

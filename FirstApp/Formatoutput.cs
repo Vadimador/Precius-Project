@@ -8,47 +8,211 @@ class Program
 {
     static void Main(string[] args)
     {
-        List<string> hashm = new List<string>();
-        List<string> output = new List<string>();
-        
-        int result = 0; 
-        output.Add("tetetetet");
-        output.Add("tetetetet");
-        output.Add("tetet");
+        bool result;
+        result = parsing();
+        Console.WriteLine(result);
 
-        hashm.Add("alert 0");
-        hashm.Add("warning 0");
-        hashm.Add("tetetetet");
-        foreach(string i in hashm)
+    }
+
+    static bool parsing()
+    {
+        List<String> stringList = new List<string>(); //List où seront contenus les keywords
+
+        string strings; 
+        StreamReader sr = new StreamReader(@"C:\Users\Fred\Desktop\hashmap.txt"); // les keywords nous indiquerons si le fichier log nous retourne un fichier malveillants 
+        strings = sr.ReadToEnd();
+
+        string text;
+        StreamReader tr = new StreamReader(@"C:\Users\Fred\Desktop\loki_WINDEV2112EVAL_2022-02-14_11-31-14.log"); // le fichier log à analyser
+        text = tr.ReadToEnd();
+
+        string[] keywords = strings.Split(','); // séparations des strings par des virgules
+             
+        foreach (string i in keywords) //ajout des keywords dans listes
         {
-            foreach(string y in output)
+            if (i.StartsWith('"'))
+            {  
+                stringList.Add(i.Substring(1,i.Length - 2));
+            }
+            else if (i == "!!")
             {
-
-                if (i == y)
-                {
-                    int buff =+ 1;
-                    result = buff;
-                }
-                else
-                {
-                    result = 0; 
-                }
-                if (result >= 1)
-                {
-                    string logpath = @"C:\Users\Fred\Desktop\log.txt";
-                    using(StreamWriter writer = new StreamWriter(logpath, true))
-                    {
-                        writer.WriteLine($"{DateTime.Now} : {result}");
-                    }           
-                    break;
-                }
-                
+                stringList.Add(i);
             }
             
-
         }
-        
+       
+        foreach (string y in stringList) // on cherche si le fichier log contiens un ou des keywords
+        {
+           if(text.Contains(y))
+           {
+                return true;
+           }
+           else if(y.Contains("!!")) // quitte la boucle à partir des "!!"
+           {
+                break;
+           }
+        }
+
+        int lengthlist = stringList.Count;
+        int index = stringList.IndexOf("!!");
+        index += 1;
+        for (int count = index; count < lengthlist; count++) // pour ensuite rechercher si les keywords restants de la liste ne sont pas présents dans le log
+        {
+            if (!text.Contains(stringList.ElementAt(count)))
+            {   
+                return true;
+            }                   
+        }
+        return false; // si rien n'est détecté
     }
+}
+
+/*
+    static bool parsingfile()
+    {
+        List<String> stringList = new List<string>();
+
+        string badoutput;
+        StreamReader sr = new StreamReader(@"C:\Users\Fred\Desktop\hashmap.txt");
+        badoutput = sr.ReadToEnd();
+
+        string text;
+        StreamReader tr = new StreamReader(@"C:\Users\Fred\Desktop\loki_WINDEV2112EVAL_2022-02-14_11-31-14.log");
+        text = tr.ReadToEnd();
+
+        string[] hashmap = badoutput.Split(',');
+             
+        foreach (string i in hashmap)
+        {
+            //Console.WriteLine(i);
+            if (i.StartsWith('"'))
+            {  
+                stringList.Add(i.Substring(1,i.Length - 2));
+            }
+            else if (i == "!!")
+            {
+                stringList.Add(i);
+            }
+            
+        }
+
+
+        foreach (string i in stringList)
+        {
+             
+            if (i.Contains("!!"))
+            {
+                //recupère la taille de la liste
+                int lengthlist = stringList.Count;
+
+                int index = stringList.IndexOf(i);
+                index += 1;
+                
+                for (int count = index; count < lengthlist; count++)
+                {
+                    
+                    //Console.WriteLine(stringList.ElementAt(count));
+                   if (!text.Contains(stringList.ElementAt(count)))
+                    {   
+                        return true;
+                        //buff += 1;
+                        //Console.WriteLine(" the buff value : {0}", buff);
+                    }
+                    
+                    
+
+                }
+            
+            }
+        }   return false;
+    }
+
+}
+
+
+/*
+    static bool parsingfile(string[] hashmap)
+    {
+        string text;
+        StreamReader sr = new StreamReader(@"C:\Users\Fred\Desktop\loki_WINDEV2112EVAL_2022-02-14_11-31-14.log");
+        text = sr.ReadToEnd();
+
+        foreach (string i in hashmap)
+        {
+           
+           
+        }
+
+
+
+        return false;
+    }
+
+
+    static bool goodresult(string[] hashmap)
+    {
+         foreach (string i in stringList)
+        {
+            if (i.Contains("!"))
+            {
+                //recupère la taille de la liste
+                int lengthlist = stringList.Count;
+
+                int index = stringList.IndexOf(i);
+                index += 1;
+                
+                
+                for (int count = index; count < lengthlist; count++)
+                {
+                   Console.WriteLine(stringList.ElementAt(count));
+                   if (!test.Contains(stringList.ElementAt(count)))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+    }
+
+}
+/*
+
+else if(i.StartsWith("!"))
+            {
+                
+            }
+     static bool negation(string[] hashmap)
+    {
+        
+        foreach (string i in hashmap)
+        {
+            if (i =="!")
+            {
+                return true;
+                
+            }
+           
+        }
+
+
+
+        return false;
+    }
+
+
+/*
+    static bool printlist(string[] stringList)
+    {
+        Console.WriteLine("content of first list :");
+
+        foreach (string i in stringList)
+        {
+            Console.WriteLine(i);
+        }
+        return;
+    }
+
 }
 /*
         //string fileinfec= "FILE:";
