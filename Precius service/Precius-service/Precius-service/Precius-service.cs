@@ -62,10 +62,39 @@ namespace Precius_service
         private IDictionary<string, Precius_Module> modules = new Dictionary<string,Precius_Module>();
 
 
-        private bool OutPutCheckFormat(string args)
+        private void OutPutCheckFormat(string text)
         {
+            //List<string> hashm = new List<string>();
+            //List<string> txt = new List<string>();
+            //hashmap
+            int result = 0;
 
-            return false;
+            foreach (string i in text)
+            {
+                foreach (string y in hashm)
+                {
+                    if (i == y)
+                    {
+                        int buff = +1;
+                        result = buff;
+                    }
+                    else
+                    {
+                        result = 0;
+                    }
+                    if (result >= 1)
+                    {
+                        string logpath = @"C:\Users\Fred\Desktop\log.txt";
+                        using (StreamWriter writer = new StreamWriter(logpath, true))
+                        {
+                            writer.WriteLine($"{DateTime.Now} : {result}");
+                        }
+                        break;
+                    }
+
+                 }
+
+            }
         }
 
         private void lireFichierTest(string chemin)
