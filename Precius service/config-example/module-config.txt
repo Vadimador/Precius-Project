@@ -2,8 +2,14 @@
 helloworld
 D:\Documents\pythonProject\precius-helloWorld\precius-hellworld.py
 python.exe <binary> -n "<filepath>"
+"virus"
 
 [new module]
 static-helloworld
 D:\Documents\pythonProject\precius-helloWorld\precius-hellworld.py
 python.exe <binary> -n "static boi !"
+
+[new module]
+quarantaine
+D:\Documents\COURS_ESGI\PA\Precius-Project\Modules\quarantaine.py
+python.exe <binary> chiffrement <filepath>

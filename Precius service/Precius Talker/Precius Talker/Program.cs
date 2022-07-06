@@ -14,6 +14,7 @@ namespace Precius_Talker
         private const string show_sectors = "show_sectors"; // montre la table des secteurs
         private const string module = "module"; // execute de manière actif un module existant
         private const string convert_path_to_sector = "convert_path_to_sector"; // execute de manière actif un module existant
+        private const string send_signal = "send_signal"; // simule un signal envoyé depuis le minifilter
         private const string bip = "bip";
 
         private const string sourceName = "Précius";
@@ -48,6 +49,9 @@ namespace Precius_Talker
                             break;
                         case convert_path_to_sector:
                             ConvertPathToSector(args[1]);
+                            break;
+                        case send_signal:
+                            SendSignal(args[1]);
                             break;
                         case bip:
                             //Console.WriteLine("args : " + args[1]);
@@ -253,9 +257,9 @@ namespace Precius_Talker
                 if(WaitForLog(131, "CustomCommand.ConvertPathToSector",ref write))
                 {
                     string[] temp = write.Split('\n');
-                    if(temp.Length >= 2)
+                    if (temp.Length >= 2)
                     {
-                        Console.WriteLine("Sector atribué à ce path : " + temp[1]);
+                        Console.WriteLine("Sector attribué à ce path : " + temp[1] + ", named : " + temp[2] );
                     }
                     else
                     {
@@ -268,6 +272,16 @@ namespace Precius_Talker
             else
             {
                 throw new Exception("Le chemin donné est vide");
+            }
+        }
+
+        static private void SendSignal(string signal)
+        {
+            if(signal.Length != 0)
+            {
+                WriteLog("Talker.SendSignal\n" + signal);
+                Controller.ExecuteCommand(132);
+                Console.WriteLine("/!\\ warning, this command simulates a signal from the minifilter, so it doesn't  wait for any response from the service.");
             }
         }
 
@@ -341,10 +355,14 @@ namespace Precius_Talker
                 "       show_sectors --> show the sectors table of the Précius service\n" +
                 "       show_modules --> show the modules table of the Précis service\n" +
                 "       module <module name> [argument] --> execute a module configured in Precius service\n" +
-                "       convert_path_to_sector <path> --> Renvoi le numéro de secteur attribué à ce chemin\n";
+                "       convert_path_to_sector <path> --> Renvoi le numéro de secteur attribué à ce chemin\n" +
+                "       send_signal <signal> --> Simule un signal du minifilter\n" +
+                "           => signal exemple : \"filescan|C:\\path\\to\\file.txt\"\n";
+
 
 
             return h;
         }
     }
 }
+ 

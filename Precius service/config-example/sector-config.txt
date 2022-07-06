@@ -1,0 +1,24 @@
+[new sector]
+name=precius_file
+|*/PA
+filescan=helloworld
+quarantine=quarantaine
+
+[new sector]
+name=Garbage
+|*/important/garbage
+filescan=0
+
+[new sector]
+name=ImportantFile
+|*/important
+filescan=betterScanner
+
+[new sector]
+name=ALL
+|*
+filescan=fileScanner
+proscan=processScanner
+imagescan=imageScanner
+threadscan=threadScanner
+quarantine=quarantineModule
