@@ -82,8 +82,6 @@ def out_bdd():
     if os.path.isfile(source):
         print("[WARNING] echec de là suppression de là quarantaine [WARNING] ")
     else:
-       
-        
 
         fichier2 = open("c:\ProgramData\Microsoft\precius\Quarantine\quarantaine.log", "a")
         fichier2.write("\n[-][-] \t [")
@@ -111,13 +109,12 @@ def move():
     else :
         shutil.move(position_virus, destinationf)
         
-
+# https://fr.acervolima.com/crypter-et-decrypter-des-fichiers-a-laide-de-python/
 
 ############################################## chiffrement 
 
 def chiffrement(): 
-######################################
-# https://fr.acervolima.com/crypter-et-decrypter-des-fichiers-a-laide-de-python/
+
 
     #Générer la clé et la sauvegarder
     fileName = 'C:/ProgramData/Microsoft/precius/key/filekey.key'
@@ -151,7 +148,7 @@ def chiffrement():
         print("[++] logs : OK ! [++]")
     else :
          print("[++] création du fichier de logs [++]")
-         os.system('echo                   [==========]      log quarantaine    [==========] >> c:\ProgramData\Microsoft\precius\Quarantine\quarantaine.log')
+         os.system('echo       [==========]      log quarantaine    [==========] >> c:\ProgramData\Microsoft\precius\Quarantine\quarantaine.log')
 
     if os.path.isfile(destinationf):
             fichier = open("c:\ProgramData\Microsoft\precius\Quarantine\quarantaine.log", "a")
@@ -166,11 +163,9 @@ def chiffrement():
 
 def dechiffrement():       
 
-    
 ####  Décrypter le fichier crypté
 
     ##########################################################
-
 
     virus_name = sys.argv[2]
     virus_name = virus_name.split("\\")[-1]
@@ -202,14 +197,25 @@ def manuel():
 
 #################################################### Commande
 
-if sys.argv[1] == 'chiffrement' or sys.argv[1] == '-chiffrement' :
-    repertoire()
-    move() 
-    chiffrement()
-    in_bdd()
-elif  sys.argv[1] == 'dechiffrement'or sys.argv[1] == '-dechiffrement':
-    dechiffrement()
-    out_bdd()
+if len(sys.argv) > 1:
+ 
+    if sys.argv[1] == 'chiffrement' or sys.argv[1] == '-chiffrement' :
+        repertoire()
+        move() 
+        chiffrement()
+        in_bdd()
+        
 
-elif sys.argv[1] == '-help' or sys.argv[1] == '-h'or sys.argv[1] == '--h' or sys.argv[1] == '--help':
-    manuel()
+    elif  sys.argv[1] == 'dechiffrement'or sys.argv[1] == '-dechiffrement':
+        dechiffrement()
+        out_bdd()   
+   
+    elif sys.argv[1] == '-help' or sys.argv[1] == '-h'or sys.argv[1] == '--h' or sys.argv[1] == '--help':
+        manuel()
+
+    else:
+       print("Erreur syntaxe. \nPour plus d'information utilisez la commande : --h")
+
+
+else:
+    print("Entrez un argument s'il vous plaît !")
