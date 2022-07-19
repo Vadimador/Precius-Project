@@ -288,7 +288,7 @@ namespace Precius_service
 
                 for (int i = 0; i < sectors.Count(); i++)
                 {
-                    seeSectors += "--------------------------------------------------------------\n";
+                    seeSectors += "==============================================================\n";
                     seeSectors += "sector numéro : " + i + "\n";
                     seeSectors += " ------ All path :\n";
                     for (int j = 0; j < sectors[i].pathList.Count(); j++)
