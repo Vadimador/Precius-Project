@@ -23,7 +23,7 @@ namespace connector_dev
         /// <summary>
         /// The communication port name for this client.
         /// </summary>
-        static private string portName = "\\\\preciusMF"; // le nom du minifilter
+        static private string portName = "\\\\preciusMF"; // le nom du minifilter, tu peux le changer comme tu veux
 
 
         /// <summary>
@@ -132,7 +132,7 @@ namespace connector_dev
 
         static void Main(string[] args)
         {
-            Console.WriteLine("Début du test de connexion");
+            Console.WriteLine("Début du test de connexion au minifiltre [" + portName + "] ! Je crois en toi ninu !");
 
             try
             {
@@ -142,7 +142,8 @@ namespace connector_dev
             }
             catch(Exception e)
             {
-                Console.WriteLine("/!\\ - An error have appear : \n" + e.ToString() + "\n");
+                Console.WriteLine("\n/!\\ - An error have appear : \n" + e.ToString() + "\n");
+                Console.WriteLine("\n[!] fais attention.. je crois que les numéros de ligne d'erreurs ne sont pas toujours bonnes...");
             }
             finally
             {
@@ -189,21 +190,42 @@ namespace connector_dev
                 int responseSize = 260 + "filescan|".Length; // la taille maximal d'un chemin de fichier par défaut est de 260 caractère plus le nom du signal.
                 IntPtr response = IntPtr.Zero; // la réponse du minifilter, il faut Marshall
                 IntPtr message = IntPtr.Zero; // le message de questionnement
-                uint bytesReceived; // jsp wtf
+                uint bytesReceived; // la taille du message du retour du minifilter
                 try
                 {
 
                     Console.WriteLine("[!] Tentative d'envoie de message au minifilter.");
-                    response = Marshal.AllocHGlobal(responseSize);
-                    message = Marshal.AllocHGlobal(1); // on envoie juste un bip
-                    
+                    response = Marshal.AllocHGlobal(responseSize); // On alloue la mémoire de la réponse
+                    message = Marshal.AllocHGlobal(1); // On alloue la mémoire du message (ce sera un simple octet)
+                    byte[] msg = { 1 }; // l'octet
+
                     Console.WriteLine("[+] Allouement des buffer réussi !");
+
+                    //=========================== 2 façon de faire la même chose, tu choisis !=================
+
+                    //Marshal.Copy(msg, 0, message, ((byte[])msg).Length); // On écrit l'octet dans l'unmanaged pointeur
+                    Marshal.WriteByte(message, msg[0]); // On fait pareil qu'au dessus mais c'est plus court
 
                     uint status = FilterSendMessage(portHandle, message, 1, response, (uint)responseSize, out bytesReceived);
                     if (status == OK)
                     {
-                        Console.WriteLine("[+] Message envoyé avec succés !!!!!");
-                        // lessssssss gooooooooooooo
+                        Console.WriteLine("[💕] Message envoyé avec succés !!!!!");
+                        Thread.Sleep(3000); // on attend 3 secondes, le temps que le minifilter puisse répondre (normalement laaaaaaaaaaaaaargement assez)
+
+                        if (response != IntPtr.Zero) // Si la réponse n'est pas null !
+                        {
+                            Console.WriteLine("[+] OMG on a ptet réussi à recevoir un truc !?");
+                            // Pour 1 seul byte
+                            Console.WriteLine("Byte (int) reçu : " + (int)Marshal.ReadByte(response)); // on écrit le byte (on le cast en int avant) de réponse dans la Console
+                                                                                                       //Pour une liste de byte (normalement ça devrait marcher aussi pour seuleument 1
+                            byte[] tab = { };
+                            Marshal.Copy(response, tab, 0, (int)bytesReceived);
+                            Console.WriteLine("Tableau de byte lu : \n" + tab.ToString());
+                        }
+                        else
+                        {
+                            Console.WriteLine("[-] La réponse du minifilter est null.");
+                        }
                     }
                     else
                     {
@@ -213,9 +235,10 @@ namespace connector_dev
                 }
                 finally
                 {
-                    Console.WriteLine("[+] Nettoyage de l'allouement des buffers");
+                    Console.WriteLine("[!] Tentative de nettoyage...");
                     Marshal.FreeHGlobal(message);
                     Marshal.FreeHGlobal(response);
+                    Console.WriteLine("[+] Nettoyage de l'allouement des buffers");
                 }
 
                 //uint status = FilterSendMessage(portHandle,)
@@ -242,6 +265,5 @@ namespace connector_dev
 
     }
    
-
 }
 
