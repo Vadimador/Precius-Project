@@ -537,7 +537,7 @@ namespace Precius_service
                         {
                             log = "CustomCommand.ConvertPathToSector";
                             int response = this.PathToSector(temp[1]);
-                            eventLog1.WriteEntry(log + '\n' + response + '\n' + this.sectors[response], EventLogEntryType.SuccessAudit, eventId++);
+                            eventLog1.WriteEntry(log + '\n' + response + '\n' + (string)this.sectors[response].rules[NAME], EventLogEntryType.SuccessAudit, eventId++);
                         }
                     }
                     break;
