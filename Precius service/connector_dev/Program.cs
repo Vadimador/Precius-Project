@@ -23,7 +23,10 @@ namespace connector_dev
         /// <summary>
         /// The communication port name for this client.
         /// </summary>
-        static private string portName = "\\\\preciusMF"; // le nom du minifilter, tu peux le changer comme tu veux
+        private const string portName = "\\mf"; // le nom du minifilter, tu peux le changer comme tu veux
+
+        private const int responseSize = 270; // la taille maximal d'un chemin de fichier par défaut est de 260 caractère plus le nom du signal.
+
 
 
         /// <summary>
@@ -128,7 +131,7 @@ namespace connector_dev
             /* [in]  */ uint inBufferSize,
             /* [out] */ IntPtr outBuffer,
             /* [in]  */ uint outBufferSize,
-            /* [out] */ out uint bytesReturned);
+            /* [out] */ out IntPtr bytesReturned);
 
         static void Main(string[] args)
         {
@@ -187,16 +190,16 @@ namespace connector_dev
         {
             if (portHandle != null)
             {
-                int responseSize = 260 + "filescan|".Length; // la taille maximal d'un chemin de fichier par défaut est de 260 caractère plus le nom du signal.
                 IntPtr response = IntPtr.Zero; // la réponse du minifilter, il faut Marshall
                 IntPtr message = IntPtr.Zero; // le message de questionnement
-                uint bytesReceived; // la taille du message du retour du minifilter
+                IntPtr bytesReceived = IntPtr.Zero; // la taille du message du retour du minifilter
                 try
                 {
 
                     Console.WriteLine("[!] Tentative d'envoie de message au minifilter.");
                     response = Marshal.AllocHGlobal(responseSize); // On alloue la mémoire de la réponse
                     message = Marshal.AllocHGlobal(1); // On alloue la mémoire du message (ce sera un simple octet)
+                    bytesReceived = Marshal.AllocHGlobal(sizeof(int)); // On alloue un int (normalement)
                     byte[] msg = { 1 }; // l'octet
 
                     Console.WriteLine("[+] Allouement des buffer réussi !");
@@ -217,10 +220,18 @@ namespace connector_dev
                             Console.WriteLine("[+] OMG on a ptet réussi à recevoir un truc !?");
                             // Pour 1 seul byte
                             Console.WriteLine("Byte (int) reçu : " + (int)Marshal.ReadByte(response)); // on écrit le byte (on le cast en int avant) de réponse dans la Console
-                                                                                                       //Pour une liste de byte (normalement ça devrait marcher aussi pour seuleument 1
-                            byte[] tab = { };
-                            Marshal.Copy(response, tab, 0, (int)bytesReceived);
-                            Console.WriteLine("Tableau de byte lu : \n" + tab.ToString());
+                                                                                                      //Pour une liste de byte (normalement ça devrait marcher aussi pour seuleument 1
+                            byte[] tab = new byte[responseSize];
+                            Marshal.Copy(response, tab, 0, responseSize - 1); // je suis (tres) con
+                            //Console.WriteLine( "BytesReceived " + Marshal.ReadInt32(bytesReceived));
+                            Console.WriteLine( "TABLength " + tab.Length);
+
+                            for (int i = 0; i < responseSize - 1; i++)
+                            {
+                                if (tab[i] == 0)
+                                    break;
+                                Console.Write((char)tab[i]);
+                            }
                         }
                         else
                         {
