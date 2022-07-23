@@ -10,12 +10,19 @@ using System.Threading.Tasks;
 using System.Timers;
 using System.IO;
 using System.Text.RegularExpressions;
-
+using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace Precius_service
 {
     public partial class Precius : ServiceBase
     {
+
+        static private SafeFileHandle portHandle = null; // l'handle du port communication
+        private const uint OK = 0;
+        private const string portName = "\\mf"; // le nom du serveur communicatino port
+        private const int responseSize = 270; // la taille masque d'une réponse
+
         private string precius_files_directory_path = "C:\\Program Files\\Precius";
         private string modules_file_path = "\\modules.conf";
         private string sectors_file_path = "\\sectors.conf";
@@ -77,7 +84,7 @@ namespace Precius_service
             public string quarantined;
             public string quarantineModule;
             public string timeSpent;
-            
+
             public string build_log()
             {
                 string log = "";
@@ -98,6 +105,43 @@ namespace Precius_service
         private List<Sector> sectors = new List<Sector>(); // la liste de tous les sectors
         private IDictionary<string, Precius_Module> modules = new Dictionary<string, Precius_Module>();
 
+        /// <summary>
+        /// Permet de se connecter à un Port communication d'un driver
+        /// </summary>
+        /// <param name="portName">le nom du port communication</param>
+        /// <param name="options"></param>
+        /// <param name="context"></param>
+        /// <param name="sizeOfContext"></param>
+        /// <param name="securityAttributes"></param>
+        /// <param name="portHandle">Le handle du port</param>
+        /// <returns></returns>
+        [DllImport("fltlib.dll")]
+        private static extern uint FilterConnectCommunicationPort(
+            /* [in]  */ [MarshalAs(UnmanagedType.LPWStr)] string portName,
+            /* [in]  */ uint options,
+            /* [in]  */ IntPtr context,
+            /* [in]  */ short sizeOfContext,
+            /* [in]  */ IntPtr securityAttributes,
+            /* [out] */ out SafeFileHandle portHandle);
+
+        /// <summary>
+        /// Fonction permettant d'envoyer un message pour ouvrir la communication avec le minifilter
+        /// </summary>
+        /// <param name="portHandle"></param>
+        /// <param name="inBuffer"></param>
+        /// <param name="inBufferSize"></param>
+        /// <param name="outBuffer"></param>
+        /// <param name="outBufferSize"></param>
+        /// <param name="bytesReturned"></param>
+        /// <returns></returns>
+        [DllImport("fltlib.dll")]
+        private static extern uint FilterSendMessage(
+           /* [in]  */ SafeFileHandle portHandle,
+           /* [in]  */ IntPtr inBuffer,
+           /* [in]  */ uint inBufferSize,
+           /* [out] */ IntPtr outBuffer,
+           /* [in]  */ uint outBufferSize,
+           /* [out] */ out uint bytesReturned);
 
         private bool OutPutCheckFormat(string text, string bad_outputs)
         {
@@ -174,11 +218,11 @@ namespace Precius_service
                     System.IO.File.Create(precius_files_directory_path + modules_file_path).Close();
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 eventLog1.WriteEntry("Error - " + e.Message, EventLogEntryType.SuccessAudit, eventId++);
             }
-           
+
         }
 
         private void LoadSectors()
@@ -220,7 +264,7 @@ namespace Precius_service
                     this.sectors.Add(s);
                 }
 
-               
+
             }
             catch (Exception e)
             {
@@ -262,7 +306,7 @@ namespace Precius_service
                         if (subTab.Length == 4)
                             bad_o = subTab[3].Trim();
 
-                        Precius_Module m = new Precius_Module(filepath,e_chain,bad_o);  // on génére un module vide
+                        Precius_Module m = new Precius_Module(filepath, e_chain, bad_o);  // on génére un module vide
 
                         this.modules.Add(subTab[0].Trim(), m);
 
@@ -474,30 +518,65 @@ namespace Precius_service
         protected override void OnStart(string[] args) // il faut que la fonction se termine pour ne pas bloquer tout l'os
         {
             eventLog1.WriteEntry("In OnStart.");
-
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
             // Set up a timer that triggers every minute.
             Timer timer = new Timer();
-            timer.Interval = 60000; // 60 seconds
+            timer.Interval = 30000; // 60 seconds
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
 
             CréationSystemFile();
             LoadSectors(); // on génére les secteurs de précius
             LoadModules(); // on génére les modules de précius
-            //ShowModules();
-            //ShowSectors();
+
+            portHandle = null;
+            try
+            {
+                eventLog1.WriteEntry(Connect(), EventLogEntryType.SuccessAudit, eventId++);
+            }
+            catch (Exception e)
+            {
+                eventLog1.WriteEntry(e.Message, EventLogEntryType.Error, eventId++);
+            }
+
+            //this.SendNotification("Démarrage du Service Précius"); // malheureusement les services n'ont plus le droit d'interraction avec l'utilisateur. Les notification par exécution de code sont impossible
+
         }
 
         public void OnTimer(object sender, ElapsedEventArgs args)
         {
             // TODO: Insert monitoring activities here.
-            eventLog1.WriteEntry("Monitoring the System", EventLogEntryType.Information, eventId++);
+            string log = "Monitoring the System\n";
+            
+            if(portHandle != null)
+            {
+                try
+                {
+                    string signal = AskMinifilterSignal();
+                    //eventLog1.WriteEntry("signal receive : \n" + signal, EventLogEntryType.Information, eventId++);
+                    log += "signal receive : \n" + signal;
+                    receiveSignal(signal);
+                }
+                catch(Exception e)
+                {
+                    eventLog1.WriteEntry("On Timer \n" + e.Message, EventLogEntryType.Error, eventId++);
+                }
+            }
+
+            eventLog1.WriteEntry(log, EventLogEntryType.Information, eventId++);
 
         }
 
         protected override void OnStop()
         {
-            eventLog1.WriteEntry("In OnStop.");
+            string log = "In OnStop\n";
+            if (portHandle != null)
+            {
+                portHandle.Dispose();
+                portHandle = null;
+                log += "Déconnexion du minifilter.\n";
+            }
+            eventLog1.WriteEntry(log, EventLogEntryType.Information, 0);
         }
 
         protected override void OnCustomCommand(int command)
@@ -543,10 +622,10 @@ namespace Precius_service
                     break;
                 case 132: // send signal
                     string write3 = "";
-                    if(SearchLog("Talker.SendSignal",ref write3))
+                    if (SearchLog("Talker.SendSignal", ref write3))
                     {
                         string[] temp = write3.Split('\n');
-                        if(temp.Length == 2)
+                        if (temp.Length == 2)
                         {
                             receiveSignal(temp[1]);
                         }
@@ -567,6 +646,38 @@ namespace Precius_service
 
         }
 
+        private void SendNotification(string text) // Unused function
+        {
+            try
+            {
+                System.Diagnostics.ProcessStartInfo procStartInfo = new System.Diagnostics.ProcessStartInfo();
+                procStartInfo.FileName = @"cmd.exe";
+                procStartInfo.Arguments = "/c \"\"" + AppDomain.CurrentDomain.BaseDirectory + "precius-shouter\\Precius Shouter.exe\" " + "\"" + text + "\" " + "\"Precius\"\"";
+                eventLog1.WriteEntry(procStartInfo.Arguments);
+                //procStartInfo.Arguments = "pwd";
+
+                // The following commands are needed to redirect the standard output.
+                // This means that it will be redirected to the Process.StandardOutput StreamReader.
+                procStartInfo.RedirectStandardOutput = true;
+                procStartInfo.RedirectStandardError = true;
+                procStartInfo.UseShellExecute = false;
+                // Do not create the black window.
+                procStartInfo.CreateNoWindow = true;
+                // Now we create a process, assign its ProcessStartInfo and start it
+                System.Diagnostics.Process proc = new System.Diagnostics.Process();
+                proc.StartInfo = procStartInfo;
+                proc.Start();
+
+                string result = proc.StandardOutput.ReadToEnd();
+                string error = proc.StandardError.ReadToEnd();
+                eventLog1.WriteEntry("bioup :" + result + error, EventLogEntryType.Information, eventId++);
+            }
+            catch (Exception e)
+            {
+                eventLog1.WriteEntry(e.Message, EventLogEntryType.Error, eventId++);
+            }
+        }
+
         // ================= SCAN-FLOW =========================
         /// <summary>
         /// parse the receive signal to choose the right flow
@@ -574,106 +685,108 @@ namespace Precius_service
         /// <param name="signal"> the signal as : signal_name|arg1|arg2|...</param>
         private void receiveSignal(string signal)
         {
-            string signal_name = signal.Split('|')[0];
-            string[] args = signal.Split('|');
-            try
+            if (signal != "")
             {
-                switch (signal_name)
+                string signal_name = signal.Split('|')[0];
+                string[] args = signal.Split('|');
+                try
                 {
-                    case FILESCAN:
-                        {
-                            /*
-                             * FILESCAN ARGUMENT EXAMPLE
-                             * arg1 : <filepath> : C:/the/directory/file.txt
-                             */
-                            Stopwatch stopWatch = new Stopwatch();
-                            stopWatch.Start();
-                            filescan_log log = new filescan_log();
-                            string response = "";
-                            string filepath = args[1];
-                            int sector_num = this.PathToSector(filepath);
-                            if (sector_num == -1)
+                    switch (signal_name)
+                    {
+                        case FILESCAN:
                             {
-                                eventLog1.WriteEntry("FILESCAN - This files " + filepath + " doesnt trigger any sectors", EventLogEntryType.Error, eventId++);
-                                break;
-                            }
-                            log.sector = sector_num.ToString();
-                            log.sectorName = this.sectors[sector_num].rules[NAME];
-                            log.fileScanned = filepath;
-                            string module_name = this.sectors[sector_num].rules[FILESCAN];
-                            //eventLog1.WriteEntry("filepath : " + filepath + " sector_num : " + sector_num + " module_name : " + module_name, EventLogEntryType.SuccessAudit, eventId++);
-                            if (module_name != "0") // si le module est activé
-                            {
-                                log.scanModule = module_name;
-                                // fonction d'execution de module
-                                string executable_chain = this.modules[module_name].executable_chain;
-
-                                if (!executable_chain.Contains(eco_binary))
+                                /*
+                                 * FILESCAN ARGUMENT EXAMPLE
+                                 * arg1 : <filepath> : C:/the/directory/file.txt
+                                 */
+                                Stopwatch stopWatch = new Stopwatch();
+                                stopWatch.Start();
+                                filescan_log log = new filescan_log();
+                                string response = "";
+                                string filepath = args[1];
+                                int sector_num = this.PathToSector(filepath);
+                                if (sector_num == -1)
                                 {
-                                    eventLog1.WriteEntry("FILESCAN - there is no <binary> in the executable chain for the module " + module_name, EventLogEntryType.Error, eventId++);
+                                    eventLog1.WriteEntry("FILESCAN - This files " + filepath + " doesnt trigger any sectors", EventLogEntryType.Error, eventId++);
                                     break;
                                 }
-
-                                executable_chain = executable_chain.Replace(eco_binary, "\"" + this.modules[module_name].filepath + "\"");
-
-                                if (executable_chain.Contains(eco_filepath))
+                                log.sector = sector_num.ToString();
+                                log.sectorName = this.sectors[sector_num].rules[NAME];
+                                log.fileScanned = filepath;
+                                string module_name = this.sectors[sector_num].rules[FILESCAN];
+                                //eventLog1.WriteEntry("filepath : " + filepath + " sector_num : " + sector_num + " module_name : " + module_name, EventLogEntryType.SuccessAudit, eventId++);
+                                if (module_name != "0") // si le module est activé
                                 {
-                                    executable_chain = executable_chain.Replace(eco_filepath, filepath);
-                                }
+                                    log.scanModule = module_name;
+                                    // fonction d'execution de module
+                                    string executable_chain = this.modules[module_name].executable_chain;
 
-                                bool error = this.ExecuteExecutableChain(executable_chain,ref response); // Execution de la chaine formaté
-
-                                bool outputCheckResponse = this.OutPutCheckFormat(response, this.modules[module_name].bad_outputs);
-
-                                log.evil = outputCheckResponse.ToString();
-                                //eventLog1.WriteEntry("OutPutCheckFormat responded : " + outputCheckResponse, EventLogEntryType.Information, eventId++);
-                                if (outputCheckResponse)
-                                {
-                                    module_name = this.sectors[sector_num].rules[QUARANTINE]; // on va chercher le module du quarantine du secteur
-                                    if (module_name != "0")
+                                    if (!executable_chain.Contains(eco_binary))
                                     {
-                                        log.quarantineModule = module_name;
-                                        executable_chain = this.modules[module_name].executable_chain;
-                                        executable_chain = executable_chain.Replace(eco_binary,"\"" + this.modules[module_name].filepath + "\"");
-                                        executable_chain = executable_chain.Replace(eco_filepath, "\"" + filepath + "\"");
-                                        error = this.ExecuteExecutableChain(executable_chain,ref response); // on lance la quarantaine si le fichier est trigger
-                                        outputCheckResponse = this.OutPutCheckFormat(response, this.modules[module_name].bad_outputs);
-
-                                        if (!outputCheckResponse && !error)
-                                        {
-                                            log.quarantined = true.ToString();
-                                        }
-                                        else
-                                        {
-                                            log.quarantined = false.ToString();
-                                        }
-
+                                        eventLog1.WriteEntry("FILESCAN - there is no <binary> in the executable chain for the module " + module_name, EventLogEntryType.Error, eventId++);
+                                        break;
                                     }
+
+                                    executable_chain = executable_chain.Replace(eco_binary, "\"" + this.modules[module_name].filepath + "\"");
+
+                                    if (executable_chain.Contains(eco_filepath))
+                                    {
+                                        executable_chain = executable_chain.Replace(eco_filepath, filepath);
+                                    }
+
+                                    bool error = this.ExecuteExecutableChain(executable_chain, ref response); // Execution de la chaine formaté
+
+                                    bool outputCheckResponse = this.OutPutCheckFormat(response, this.modules[module_name].bad_outputs);
+
+                                    log.evil = outputCheckResponse.ToString();
+                                    //eventLog1.WriteEntry("OutPutCheckFormat responded : " + outputCheckResponse, EventLogEntryType.Information, eventId++);
+                                    if (outputCheckResponse)
+                                    {
+                                        module_name = this.sectors[sector_num].rules[QUARANTINE]; // on va chercher le module du quarantine du secteur
+                                        if (module_name != "0")
+                                        {
+                                            log.quarantineModule = module_name;
+                                            executable_chain = this.modules[module_name].executable_chain;
+                                            executable_chain = executable_chain.Replace(eco_binary, "\"" + this.modules[module_name].filepath + "\"");
+                                            executable_chain = executable_chain.Replace(eco_filepath, "\"" + filepath + "\"");
+                                            error = this.ExecuteExecutableChain(executable_chain, ref response); // on lance la quarantaine si le fichier est trigger
+                                            outputCheckResponse = this.OutPutCheckFormat(response, this.modules[module_name].bad_outputs);
+
+                                            if (!outputCheckResponse && !error)
+                                            {
+                                                log.quarantined = true.ToString();
+                                            }
+                                            else
+                                            {
+                                                log.quarantined = false.ToString();
+                                            }
+
+                                        }
+                                    }
+
                                 }
+                                stopWatch.Stop();
+                                TimeSpan ts = stopWatch.Elapsed;
+                                string elapsedtime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", ts.Hours, ts.Minutes, ts.Seconds, ts.Milliseconds / 10);
+                                log.timeSpent = elapsedtime;
+                                eventLog1.WriteEntry(log.build_log(), EventLogEntryType.Information, eventId++);
 
                             }
-                            stopWatch.Stop();
-                            TimeSpan ts = stopWatch.Elapsed;
-                            string elapsedtime = String.Format("{0:00}:{1:00}:{2:00}.{3:00}", ts.Hours, ts.Minutes, ts.Seconds,ts.Milliseconds / 10);
-                            log.timeSpent = elapsedtime;
-                            eventLog1.WriteEntry(log.build_log(), EventLogEntryType.Information, eventId++);
-
-                        }
-                        break;
-                    /*case QUARANTINE: // quarantaine n'est pas un signal
-                        {
-                            string filepath = args[1];
-                        }
-                        break;*/
-                    default:
-                        break;
+                            break;
+                        /*case QUARANTINE: // quarantaine n'est pas un signal
+                            {
+                                string filepath = args[1];
+                            }
+                            break;*/
+                        default:
+                            break;
+                    }
+                }
+                catch (Exception e)
+                {
+                    eventLog1.WriteEntry("Error - " + e.Message, EventLogEntryType.Error, eventId++);
                 }
             }
-            catch(Exception e)
-            {
-                eventLog1.WriteEntry("Error - " + e.Message, EventLogEntryType.Error, eventId++);
-            }
-
         }
 
         private bool ExecuteExecutableChain(string chain, ref string output)
@@ -714,5 +827,77 @@ namespace Precius_service
             return true;
            
         }
+
+        // ================= MINIFILTER COMMUNICATION FUNCTION ====================
+
+        private string Connect()
+        {
+            string rlt = "";
+            uint status; // le status HRESULT
+            status = FilterConnectCommunicationPort(portName, 0, IntPtr.Zero, 0, IntPtr.Zero, out portHandle); // la connexion
+            if(status == OK)
+            {
+                rlt += "Connexion au minifilter réussi !\n";
+            }
+            else
+            {
+                portHandle = null;
+                throw new Exception("Echec de connexion au minifilter.\nError : HRESULT 0x" + status.ToString("X") + "\n" + Marshal.GetExceptionForHR((int)status).Message);
+            }
+
+            return rlt;
+        }
+       
+        private string AskMinifilterSignal()
+        {
+            string msg = "";
+            
+            if(portHandle != null)
+            {
+              
+                IntPtr response = IntPtr.Zero;
+                IntPtr message = IntPtr.Zero;
+                uint byteReceived;
+                try
+                {
+                    response = Marshal.AllocHGlobal(responseSize);
+                    message = Marshal.AllocHGlobal(1);
+
+                    Marshal.WriteByte(message, (byte)1);
+
+                    uint status = FilterSendMessage(portHandle, message, 1, response, (uint)responseSize, out byteReceived);
+                    if (status == OK)
+                    {
+                        byte[] tab = new byte[responseSize];
+                        Marshal.Copy(response, tab, 0, responseSize - 1); // le -1 c'est pour la sécu
+                        for (int i = 0; i < responseSize; i++)
+                        {
+                            if (tab[i] == 0)
+                                break;
+                            msg += (char)tab[i];
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Echec de communication.\nError : HRESULT 0x" + status.ToString("X") + "\n" + Marshal.GetExceptionForHR((int)status).Message);
+                    }
+                }
+                catch(Exception e)
+                {
+                    throw e;
+                }
+                finally
+                {
+                    Marshal.FreeHGlobal(response);
+                    Marshal.FreeHGlobal(message);
+                }
+
+
+            }
+
+            return msg;
+        }
+   
+    
     }
 }
