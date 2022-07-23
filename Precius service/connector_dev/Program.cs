@@ -221,17 +221,19 @@ namespace connector_dev
                             // Pour 1 seul byte
                             Console.WriteLine("Byte (int) reçu : " + (int)Marshal.ReadByte(response)); // on écrit le byte (on le cast en int avant) de réponse dans la Console
                                                                                                       //Pour une liste de byte (normalement ça devrait marcher aussi pour seuleument 1
-                            byte[] tab = new byte[responseSize];
-                            Marshal.Copy(response, tab, 0, responseSize - 1); // je suis (tres) con
+                            char[] tab = new char[responseSize];
+                            Marshal.Copy(response, tab, 0, responseSize - 1); // je suis (encore plus) con
                             //Console.WriteLine( "BytesReceived " + Marshal.ReadInt32(bytesReceived));
                             Console.WriteLine( "TABLength " + tab.Length);
 
                             for (int i = 0; i < responseSize - 1; i++)
                             {
                                 if (tab[i] == 0)
-                                    break;
-                                Console.Write((char)tab[i]);
+                                { break; }
+                                //Console.Write((char)tab[i] + "["+(int)tab[i] +"]");
+                                Console.Write(tab[i]);
                             }
+                            Console.WriteLine("\n");
                         }
                         else
                         {

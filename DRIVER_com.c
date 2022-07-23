@@ -5,7 +5,6 @@
 PFLT_PORT port = NULL;
 PFLT_PORT ClientPort = NULL;
 PFLT_FILTER FilterHandle = NULL;
-WCHAR SavedName[200] = { 0 };
 NTSTATUS MiniUnload(FLT_FILTER_UNLOAD_FLAGS Flags);
 FLT_POSTOP_CALLBACK_STATUS MiniPostCreate(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OBJECTS FltObjects, PVOID* CompletionContext, FLT_POST_OPERATION_FLAGS Flags);
 FLT_PREOP_CALLBACK_STATUS MiniPreCreate(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OBJECTS FltObjects, PVOID* CompletionContext);
@@ -13,8 +12,8 @@ FLT_PREOP_CALLBACK_STATUS MiniPreWrite(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OB
 
 
 const FLT_OPERATION_REGISTRATION Callbacks[] = {
-    {IRP_MJ_CREATE,0,NULL,MiniPostCreate},
-  // {IRP_MJ_WRITE,0,MiniPreWrite,NULL},
+    {IRP_MJ_CREATE,0,MiniPreCreate,MiniPostCreate},
+    {IRP_MJ_WRITE,0,MiniPreWrite,NULL},
     {IRP_MJ_OPERATION_END}
 };
 
@@ -46,33 +45,7 @@ NTSTATUS MiniUnload(FLT_FILTER_UNLOAD_FLAGS Flags)
 
 FLT_POSTOP_CALLBACK_STATUS MiniPostCreate(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OBJECTS FltObjects, PVOID* CompletionContext, FLT_POST_OPERATION_FLAGS Flags)
 {
-    //KdPrint(("post create is running \r\n"));
-    PFLT_FILE_NAME_INFORMATION FileNameInfo;
-    NTSTATUS status;
-    WCHAR Name[200] = { 0 };
-
-    status = FltGetFileNameInformation(Data, FLT_FILE_NAME_NORMALIZED | FLT_FILE_NAME_QUERY_DEFAULT, &FileNameInfo);
-
-
-    if (NT_SUCCESS(status)) {
-
-        status = FltParseFileNameInformation(FileNameInfo);
-
-        if (NT_SUCCESS(status)) {
-
-            if (FileNameInfo->Name.MaximumLength < 260) {
-                RtlCopyMemory(Name, FileNameInfo->Name.Buffer, FileNameInfo->Name.MaximumLength);
-                if (wcsstr(Name, L"VADIM\\") != NULL) {
-                    //RtlCopyMemory(Name, FileNameInfo->Name.Buffer, FileNameInfo->Name.MaximumLength);
-                    RtlCopyMemory(SavedName, Name, 200);
-                    KdPrint(("post create: %ws \r\n", Name));
-                }
-            }
-        }
-
-        FltReleaseFileNameInformation(FileNameInfo);
-    }
-
+    KdPrint(("post create is running \r\n"));
     return FLT_POSTOP_FINISHED_PROCESSING;
 }
 
@@ -137,7 +110,7 @@ FLT_PREOP_CALLBACK_STATUS MiniPreWrite(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OB
         FltReleaseFileNameInformation(FileNameInfo);
     }
 
-    return FLT_PREOP_SUCCESS_NO_CALLBACK;
+    return FLT_PREOP_SUCCESS_WITH_CALLBACK;
 }
 
 
@@ -156,32 +129,10 @@ VOID MiniDisconnect(PVOID connectioncookie)
 
 NTSTATUS MiniSendRec(PVOID portcookie, PVOID InputBuffer, ULONG InputBufferLength, PVOID OutputBuffer, ULONG OutputBufferLength, PULONG RetLength)
 {
-    //PWCHAR msg = L"filescan|";
-    WCHAR msg[209] = { 0 };
-    msg[0] = L'f'; msg[1] = L'i'; msg[2] = L'l'; msg[3] = L'e'; msg[4] = L's'; msg[5] = L'c'; msg[6] = L'a'; msg[7] = L'n'; msg[8] = L'|';
-    RtlCopyMemory(&msg[9], SavedName, 200);
+    PCHAR msg = "kernel msg";
+    KdPrint((" user msg is : %s \r\n", (PCHAR)InputBuffer));
 
-    RtlCopyMemory((PWCHAR)OutputBuffer, msg, 209);
-    //PWCHAR vadim = L"ninu";
-    //PWCHAR con = wcscat(msg, vadim);
-    
-    //KdPrint((" user msg is : %s \r\n", (PWCHAR)InputBuffer));
-    
-    //RtlCopyMemory((PWCHAR)OutputBuffer, con, 200);
-    //RtlCopyMemory((PWCHAR)OutputBuffer, SavedName, 200);
-    /*
-    {       EXEMPLE DE CONCATENATION
-        wchar_t buffer1[SIZE] = L"computer";
-        wchar_t* string = L" program";
-        wchar_t* ptr;
-
-        ptr = wcscat(buffer1, string);
-        printf("buffer1 = %ls\n", buffer1);
-
-    }
-    */
-
-   // strcpy((PWCHAR)OutputBuffer, msg);
+    strcpy((PCHAR)OutputBuffer, msg);
     return STATUS_SUCCESS;
 }
 
@@ -221,6 +172,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegistryPath)
 
         FltUnregisterFilter(FilterHandle);
     }
-
+    
     return status;
 }
