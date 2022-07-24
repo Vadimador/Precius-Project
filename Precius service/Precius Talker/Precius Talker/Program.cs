@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Threading;
 using System.Collections.Generic;
 
-// Idée pour l'execution actif : cmd.exe /c python.exe "D:\Documents\pythonProject\precius-helloWorld\precius-hellworld.py" -n "my name is bobby"
 namespace Precius_Talker
 {
 
@@ -23,16 +22,17 @@ namespace Precius_Talker
         static ServiceController Controller = null;
         static EventLog el = null;
 
+       
         static void Main(string[] args)
         {
             if (args.Length > 0)
             {
                 try
                 {
-                    initialiseServiceController();
-                    initialiseArgLog();
+                    initialiseServiceController(); // Initialiser le serviceController pour communiquer avec le service
+                    initialiseArgLog(); // on se connecte au journal de Windows Events precius-log
 
-                    switch (args[0])
+                    switch (args[0]) // le switch pour les commandes
                     {
                         case show_modules:
                             ShowModules();
@@ -54,8 +54,7 @@ namespace Precius_Talker
                             SendSignal(args[1]);
                             break;
                         case bip:
-                            //Console.WriteLine("args : " + args[1]);
-                            Console.WriteLine("Bip Result : " + Bip(args[1]));
+                            //Controller.ExecuteCommand(255);
                             break;
                         default:
                             throw new Exception("Unknowed command");
@@ -74,7 +73,6 @@ namespace Precius_Talker
                 Console.WriteLine(help());
             }
         }
-
         // Fonction Utilitaire : 
         static private void initialiseServiceController()
         {
@@ -95,6 +93,15 @@ namespace Precius_Talker
             el.Source = sourceName;
             el.Log = journalName;
         }
+        
+        /// <summary>
+        /// Execute une command au service, et attend son retour 3 secondes (par défaut) avant d'abandonner.
+        /// </summary>
+        /// <param name="executeCommand">la commande à exécuter</param>
+        /// <param name="stringToFind"></param>
+        /// <param name="write"></param>
+        /// <param name="timerTime"></param>
+        /// <returns></returns>
         static private bool WaitForLog(int executeCommand, string stringToFind, ref string write, float timerTime = timerWait)
         {
             EventLogEntryCollection elec = el.Entries;
@@ -285,6 +292,7 @@ namespace Precius_Talker
             }
         }
 
+        // An unused local test function
         static private bool Bip(string path)
         {
             Console.WriteLine("\n\n\n");

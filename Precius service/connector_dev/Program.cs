@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using System.Threading;
 
+// Code de test pour tester en local la connexion au minifilter
 namespace connector_dev
 {
     class Program

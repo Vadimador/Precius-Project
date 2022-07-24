@@ -13,7 +13,49 @@ using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
 using System.Threading;
+using System.Management;
 
+// ===================== Class pour convertir les harddisk en letter =====================
+// Convertit : \Device\HarddiskVolume3\Users\Test_driver\Desktop\hello\test.txt doesnt trigger any sectors
+// En C:\Users\Test_driver\Desktop\hello\test.txt doesnt trigger any sectors
+public static class DevicePathMapper
+{
+    [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint QueryDosDevice([In] string lpDeviceName, [Out] StringBuilder lpTargetPath, [In] int ucchMax);
+
+    public static string FromDevicePath(string devicePath)
+    {
+        var drive = Array.Find(DriveInfo.GetDrives(), d => devicePath.StartsWith(d.GetDevicePath(), StringComparison.InvariantCultureIgnoreCase));
+        return drive != null ?
+            devicePath.ReplaceFirst(drive.GetDevicePath(), drive.GetDriveLetter()) :
+            null;
+    }
+
+    private static string GetDevicePath(this DriveInfo driveInfo)
+    {
+        var devicePathBuilder = new StringBuilder(128);
+        return QueryDosDevice(driveInfo.GetDriveLetter(), devicePathBuilder, devicePathBuilder.Capacity + 1) != 0 ?
+            devicePathBuilder.ToString() :
+            null;
+    }
+
+    private static string GetDriveLetter(this DriveInfo driveInfo)
+    {
+        return driveInfo.Name.Substring(0, 2);
+    }
+
+    private static string ReplaceFirst(this string text, string search, string replace)
+    {
+        int pos = text.IndexOf(search);
+        if (pos < 0)
+        {
+            return text;
+        }
+        return text.Substring(0, pos) + replace + text.Substring(pos + search.Length);
+    }
+}
+
+// All the code of the Précius Service
 namespace Precius_service
 {
     public partial class Precius : ServiceBase
@@ -21,8 +63,8 @@ namespace Precius_service
 
         static private SafeFileHandle portHandle = null; // l'handle du port communication
         private const uint OK = 0;
-        private const string portName = "\\mf"; // le nom du serveur communicatino port
-        private const int responseSize = 270; // la taille masque d'une réponse
+        private const string portName = "\\mf"; // le nom du serveur communication port
+        private const int responseSize = 270; // la taille maximal d'une réponse du driver
 
         private string precius_files_directory_path = "C:\\Program Files\\Precius";
         private string modules_file_path = "\\modules.conf";
@@ -144,6 +186,7 @@ namespace Precius_service
            /* [in]  */ uint outBufferSize,
            /* [out] */ out uint bytesReturned);
 
+        // Compare le retour d'un module avec son bad_outputs, 1 si ils sont détécté
         private bool OutPutCheckFormat(string text, string bad_outputs)
         {
             //eventLog1.WriteEntry("text : " + text + " bad_outputs : " + bad_outputs);
@@ -200,6 +243,7 @@ namespace Precius_service
             return false; // si rien n'est détecté
         }
 
+        // Génére le C:\Program Files\Precius\... et les ficheir de conf
         private void CréationSystemFile()
         {
             try
@@ -226,6 +270,7 @@ namespace Precius_service
 
         }
 
+        // Charge les secteurs dans la table en mémoire
         private void LoadSectors()
         {
             String all;
@@ -274,6 +319,7 @@ namespace Precius_service
             }
         }
 
+        // Charge les modules dans la table en mémoire
         private void LoadModules()
         {
             String all;
@@ -325,6 +371,7 @@ namespace Precius_service
             }
         }
 
+        // Affiche la table des secteurs
         private string ShowSectors()
         {
             string seeSectors = "Affichage des secteurs : \n\n";
@@ -360,7 +407,8 @@ namespace Precius_service
             }
             return seeSectors;
         }
-
+        
+        // Affiche la table des modules
         private string ShowModules()
         {
             string seeModules = "Affichage des modules : \n\n";
@@ -388,6 +436,7 @@ namespace Precius_service
             return seeModules;
         }
 
+        // Renvoi les informations concernant un module donné
         private string ModuleInformation(string module)
         {
             string res = "";
@@ -404,7 +453,8 @@ namespace Precius_service
 
             return res;
         }
-
+        
+        // Catch un log écrit par le Talker
         private bool SearchLog(string stringToFind, ref string write, int last = 10)
         {
             EventLogEntryCollection elec = this.eventLog1.Entries;
@@ -505,7 +555,6 @@ namespace Precius_service
         public Precius()
         {
             InitializeComponent();
-            //sectors = new List<Sector>();
             eventLog1 = new System.Diagnostics.EventLog();
             if (!System.Diagnostics.EventLog.SourceExists("Précius"))
             {
@@ -537,7 +586,7 @@ namespace Precius_service
             }
             catch (Exception e)
             {
-                eventLog1.WriteEntry(e.Message, EventLogEntryType.Error, eventId++);
+                eventLog1.WriteEntry(e.Message, EventLogEntryType.Warning, eventId++);
             }
 
             //this.SendNotification("Démarrage du Service Précius"); // malheureusement les services n'ont plus le droit d'interraction avec l'utilisateur. Les notification par exécution de code sont impossible
@@ -546,7 +595,7 @@ namespace Precius_service
 
         public void OnTimer(object sender, ElapsedEventArgs args)
         {
-            // TODO: Insert monitoring activities here.
+
             //string log = "Monitoring the System\n";
             string log = "";
             
@@ -555,13 +604,15 @@ namespace Precius_service
                 try
                 {
                     string signal = AskMinifilterSignal();
-                    //eventLog1.WriteEntry("signal receive : \n" + signal, EventLogEntryType.Information, eventId++);
-                    log += "signal receive : \n" + signal;
-                    //eventLog1.WriteEntry(log, EventLogEntryType.Information, eventId++);
+                  
                     if (signal.Contains("filescan|"))
                     {
                         if (signal.Split('|')[1] != "")
                         {
+                            string path = signal.Split('|')[1];
+                            path = DevicePathMapper.FromDevicePath(path);
+                            signal = "filescan|" + path;
+                            log = "signal receive : " + signal;
                             eventLog1.WriteEntry(log, EventLogEntryType.Information, eventId++);
                             receiveSignal(signal);
                         }
@@ -588,6 +639,7 @@ namespace Precius_service
             eventLog1.WriteEntry(log, EventLogEntryType.Information, 0);
         }
 
+        // Récupère le numèro de la commande exécuté par le Talker
         protected override void OnCustomCommand(int command)
         {
             eventLog1.WriteEntry("Custom command : " + command, EventLogEntryType.Information, eventId++);
@@ -640,10 +692,13 @@ namespace Precius_service
                         }
                     }
                     break;
-                /*case 255: // fonction de test bip
-                    log = "CustomCommand.Bip\n";
-                    receiveSignal(FILESCAN + "|D:\\Documents\\COURS_ESGI\\PA\\Precius-Project\\Modules\\virus.txt");
-                    break;*/
+                case 255: // fonction de test bip
+
+                    //string fp = DevicePathMapper.FromDevicePath(@"\Device\HarddiskVolume1\Users\Test_driver\Desktop\VADIM\test.txt");
+                    //eventLog1.WriteEntry("final path : " + fp, EventLogEntryType.Warning, eventId++);
+                    //log = "CustomCommand.Bip\n";
+                    //receiveSignal(FILESCAN + "|D:\\Documents\\COURS_ESGI\\PA\\Precius-Project\\Modules\\virus.txt");
+                    break;
                 default:
                     eventLog1.WriteEntry("Unknowed Custom command : " + command, EventLogEntryType.Error, eventId++);
                     break;
@@ -689,7 +744,8 @@ namespace Precius_service
 
         // ================= SCAN-FLOW =========================
         /// <summary>
-        /// parse the receive signal to choose the right flow
+        /// parse the receive signal to choose the right flow, and execute this flow.
+        /// log int the Windows Event le log flow.
         /// </summary>
         /// <param name="signal"> the signal as : signal_name|arg1|arg2|...</param>
         private void receiveSignal(string signal)
@@ -716,7 +772,7 @@ namespace Precius_service
                                 int sector_num = this.PathToSector(filepath);
                                 if (sector_num == -1)
                                 {
-                                    eventLog1.WriteEntry("FILESCAN - This files " + filepath + " doesnt trigger any sectors", EventLogEntryType.Error, eventId++);
+                                    eventLog1.WriteEntry("FILESCAN - This files " + filepath + " doesnt trigger any sectors", EventLogEntryType.Warning, eventId++);
                                     break;
                                 }
                                 log.sector = sector_num.ToString();
@@ -798,6 +854,7 @@ namespace Precius_service
             }
         }
 
+        // Execute un executable_chain, renvoi 1 si il y a une erreur. et les outputs dans "output"
         private bool ExecuteExecutableChain(string chain, ref string output)
         {
             try
@@ -838,7 +895,8 @@ namespace Precius_service
         }
 
         // ================= MINIFILTER COMMUNICATION FUNCTION ====================
-
+        
+        // Se connecte au serveur de port de communication mis en place par le minifilter
         private string Connect()
         {
             string rlt = "";
@@ -857,6 +915,7 @@ namespace Precius_service
             return rlt;
         }
        
+        // Récupère un signal du minifilter (il n'est pas forcément valide)
         private string AskMinifilterSignal()
         {
             string msg = "";
@@ -905,8 +964,6 @@ namespace Precius_service
             }
 
             return msg;
-        }
-   
-    
+        }        
     }
 }
