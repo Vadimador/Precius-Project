@@ -352,12 +352,12 @@ namespace Precius_Talker
         static private string help()
         {
             string h = "commandes :\n" +
-                "       show_sectors --> show the sectors table of the Précius service\n" +
-                "       show_modules --> show the modules table of the Précis service\n" +
-                "       module <module name> [argument] --> execute a module configured in Precius service\n" +
-                "       convert_path_to_sector <path> --> Renvoi le numéro de secteur attribué à ce chemin\n" +
-                "       send_signal <signal> --> Simule un signal du minifilter\n" +
-                "           => signal exemple : \"filescan|C:\\path\\to\\file.txt\"\n";
+                "       show_sectors --> show the sectors table of the Précius service.\n" +
+                "       show_modules --> show the modules table of the Précius service.\n" +
+                "       module <module name> [argument] --> execute a module configured in Precius service.\n" +
+                "       convert_path_to_sector <path> --> Returns the sector number assigned to this path.\n" +
+                "       send_signal <signal> --> Simulates a signal from the minifilter.\n" +
+                "           => signal example : \"filescan|C:\\path\\to\\file.txt\"\n";
 
 
 

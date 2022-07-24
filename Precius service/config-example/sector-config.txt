@@ -18,7 +18,4 @@ filescan=betterScanner
 name=ALL
 |*
 filescan=fileScanner
-proscan=processScanner
-imagescan=imageScanner
-threadscan=threadScanner
-quarantine=quarantineModule
+quarantine=quarantaineModule

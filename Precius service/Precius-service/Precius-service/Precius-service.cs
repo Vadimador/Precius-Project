@@ -6,12 +6,13 @@ using System.Diagnostics;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
-using System.Threading.Tasks;
+//using System.Threading.Tasks;
 using System.Timers;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using System.Threading;
 
 namespace Precius_service
 {
@@ -520,8 +521,8 @@ namespace Precius_service
             eventLog1.WriteEntry("In OnStart.");
             Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
             // Set up a timer that triggers every minute.
-            Timer timer = new Timer();
-            timer.Interval = 30000; // 60 seconds
+            System.Timers.Timer timer = new System.Timers.Timer();
+            timer.Interval = 10000; // 60 seconds
             timer.Elapsed += new ElapsedEventHandler(this.OnTimer);
             timer.Start();
 
@@ -556,6 +557,7 @@ namespace Precius_service
                     //eventLog1.WriteEntry("signal receive : \n" + signal, EventLogEntryType.Information, eventId++);
                     log += "signal receive : \n" + signal;
                     receiveSignal(signal);
+                    
                 }
                 catch(Exception e)
                 {
@@ -868,14 +870,15 @@ namespace Precius_service
                     uint status = FilterSendMessage(portHandle, message, 1, response, (uint)responseSize, out byteReceived);
                     if (status == OK)
                     {
-                        byte[] tab = new byte[responseSize];
+                        char[] tab = new char[responseSize];
                         Marshal.Copy(response, tab, 0, responseSize - 1); // le -1 c'est pour la sécu
                         for (int i = 0; i < responseSize; i++)
                         {
                             if (tab[i] == 0)
                                 break;
-                            msg += (char)tab[i];
+                            msg += tab[i];
                         }
+                        msg += '#'; // pour test, à enlever
                     }
                     else
                     {

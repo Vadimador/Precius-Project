@@ -1,6 +1,6 @@
 import os
 import shutil
-import crypto
+#import crypto
 import sys
 import hashlib,sys,string
 from subprocess import getoutput
