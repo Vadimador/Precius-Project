@@ -156,31 +156,14 @@ VOID MiniDisconnect(PVOID connectioncookie)
 
 NTSTATUS MiniSendRec(PVOID portcookie, PVOID InputBuffer, ULONG InputBufferLength, PVOID OutputBuffer, ULONG OutputBufferLength, PULONG RetLength)
 {
-    //PWCHAR msg = L"filescan|";
+    //RtlZeroMemory(OutputBuffer, OutputBufferLength*sizeof(WCHAR));
     WCHAR msg[209] = { 0 };
     msg[0] = L'f'; msg[1] = L'i'; msg[2] = L'l'; msg[3] = L'e'; msg[4] = L's'; msg[5] = L'c'; msg[6] = L'a'; msg[7] = L'n'; msg[8] = L'|';
     RtlCopyMemory(&msg[9], SavedName, 200);
-
     RtlCopyMemory((PWCHAR)OutputBuffer, msg, 209);
-    //PWCHAR vadim = L"ninu";
-    //PWCHAR con = wcscat(msg, vadim);
+    RtlZeroMemory(SavedName, sizeof(WCHAR) *200);
     
-    //KdPrint((" user msg is : %s \r\n", (PWCHAR)InputBuffer));
-    
-    //RtlCopyMemory((PWCHAR)OutputBuffer, con, 200);
-    //RtlCopyMemory((PWCHAR)OutputBuffer, SavedName, 200);
-    /*
-    {       EXEMPLE DE CONCATENATION
-        wchar_t buffer1[SIZE] = L"computer";
-        wchar_t* string = L" program";
-        wchar_t* ptr;
-
-        ptr = wcscat(buffer1, string);
-        printf("buffer1 = %ls\n", buffer1);
-
-    }
-    */
-
+   // KdPrint((" user msg is : %s \r\n", (PWCHAR)InputBuffer));
    // strcpy((PWCHAR)OutputBuffer, msg);
     return STATUS_SUCCESS;
 }
