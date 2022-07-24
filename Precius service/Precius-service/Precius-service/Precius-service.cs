@@ -547,7 +547,8 @@ namespace Precius_service
         public void OnTimer(object sender, ElapsedEventArgs args)
         {
             // TODO: Insert monitoring activities here.
-            string log = "Monitoring the System\n";
+            //string log = "Monitoring the System\n";
+            string log = "";
             
             if(portHandle != null)
             {
@@ -556,7 +557,15 @@ namespace Precius_service
                     string signal = AskMinifilterSignal();
                     //eventLog1.WriteEntry("signal receive : \n" + signal, EventLogEntryType.Information, eventId++);
                     log += "signal receive : \n" + signal;
-                    receiveSignal(signal);
+                    //eventLog1.WriteEntry(log, EventLogEntryType.Information, eventId++);
+                    if (signal.Contains("filescan|"))
+                    {
+                        if (signal.Split('|')[1] != "")
+                        {
+                            eventLog1.WriteEntry(log, EventLogEntryType.Information, eventId++);
+                            receiveSignal(signal);
+                        }
+                    }
                     
                 }
                 catch(Exception e)
@@ -564,8 +573,6 @@ namespace Precius_service
                     eventLog1.WriteEntry("On Timer \n" + e.Message, EventLogEntryType.Error, eventId++);
                 }
             }
-
-            eventLog1.WriteEntry(log, EventLogEntryType.Information, eventId++);
 
         }
 
@@ -878,7 +885,6 @@ namespace Precius_service
                                 break;
                             msg += tab[i];
                         }
-                        msg += '#'; // pour test, à enlever
                     }
                     else
                     {
