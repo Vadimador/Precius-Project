@@ -14,7 +14,7 @@ FLT_PREOP_CALLBACK_STATUS MiniPreWrite(PFLT_CALLBACK_DATA Data, PCFLT_RELATED_OB
 
 const FLT_OPERATION_REGISTRATION Callbacks[] = {
     {IRP_MJ_CREATE,0,NULL,MiniPostCreate},
-  // {IRP_MJ_WRITE,0,MiniPreWrite,NULL},
+  //{IRP_MJ_WRITE,0,MiniPreWrite,NULL},
     {IRP_MJ_OPERATION_END}
 };
 
@@ -62,7 +62,7 @@ FLT_POSTOP_CALLBACK_STATUS MiniPostCreate(PFLT_CALLBACK_DATA Data, PCFLT_RELATED
 
             if (FileNameInfo->Name.MaximumLength < 260) {
                 RtlCopyMemory(Name, FileNameInfo->Name.Buffer, FileNameInfo->Name.MaximumLength);
-                if (wcsstr(Name, L"VADIM\\") != NULL) {
+                if (wcsstr(Name, L"PRECIUS_FOLDER\\") != NULL) {
                     //RtlCopyMemory(Name, FileNameInfo->Name.Buffer, FileNameInfo->Name.MaximumLength);
                     RtlCopyMemory(SavedName, Name, 200);
                     KdPrint(("post create: %ws \r\n", Name));
